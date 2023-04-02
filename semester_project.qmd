@@ -1,0 +1,183 @@
+---
+title: "Semester Project"
+format:
+  html:
+    code-fold: true
+    code-line-numbers: true
+    code-link: true
+editor: visual
+output: html_document
+execute:
+  keep-md: true
+---
+
+
+
+```{r, message=FALSE}
+library(tidyverse)
+library(rio)
+library(pander)
+library(haven)
+library(plotly)
+library(readr)
+library(foreign)
+library(readxl)
+library(ggplot2)
+library(ggthemes)
+library(DT) 
+library(ggrepel)
+library(car)
+library(mosaic)
+
+
+```
+
+### Import 
+
+```{r, message=FALSE, warning=FALSE}
+Rent <- read_csv("../DS350/Rent1.csv")
+```
+
+
+
+### Data Interactive Chart
+
+The interactive chart below shows you all the apartment complexes for BYUI housing. The + button displays details such as phone number and website. It also has a search bar so feel free to use it. 
+
+<br />
+
+
+```{r, na.rm = TRUE}
+
+Rent1 <- Rent %>% drop_na()  
+
+#fem_house <- Rent1 %>% 
+             # filter(Gender == "F")
+
+datatable(Rent1, options=list(lengthMenu = c(3,10,30)), extensions="Responsive")
+```
+<br />
+
+### Price & Capacity
+
+The Capacity is greater for women reaching the most expensive rent but very close to men's housing. The median for men in capacity is 62 and for women 108
+
+```{r, message=FALSE, warning=FALSE}
+
+
+Rent1 %>% 
+  filter(Capacity!= 0) %>% 
+ggplot(aes(x= Capacity, y= Price, fill=Gender)) + 
+  geom_boxplot()+
+  geom_point()+
+  facet_wrap(~ Gender)+
+  labs()
+  theme_clean()
+
+```
+
+
+```{r}
+
+favstats(Capacity ~ Gender, data= Rent1)[,-10] %>%
+pander(caption="Capacity")
+
+```
+
+
+
+```{r}
+price.by.gender <- Rent1 %>% 
+  group_by(Gender) %>% 
+  summarize(avg.rent= mean(Price))
+```
+
+
+### Rent Price
+
+Overall the average rent is close in price for both genders. We have to consider that this dataset is from 2018-2019 so prices have changed.
+
+```{r}
+ggplot(price.by.gender, aes(x= Gender, y= avg.rent, fill= Gender))+
+  geom_col()+
+  theme_clean()+
+  labs(title="Average Rent by Gender")
+```
+
+```{r}
+
+price.by.gender %>% pander()
+
+```
+### Distance
+
+From the plot it can be said that the distance from campus does not determine the price. For example The Pines is less than 2 min. away from the MC and the rent is less than $100. While North Point less than 2 min away costs 1,537.
+  
+```{r, message=FALSE, warning=FALSE}
+plot_ly(Rent1) %>%
+  add_markers(y= ~Price, x= ~WalkingMinutes, text= ~Apartment, color= ~ Gender, size= 1) %>%
+  layout(title="Housing Distance from Campus by Gender", xaxis=list(title="Distance from MC in Walking Minutes"), 
+         yaxis=list(title="Rent Price for Semester"))
+```
+
+### Closest Apartments 
+
+The Pines and Birch Plaza seem to be the best options when it comes to distance and price. 
+
+```{r,na.rm = TRUE,  warning = FALSE, message = FALSE}
+
+
+# Price and distance (5 min)
+
+closest.ap<- Rent1 %>% 
+  filter(WalkingMinutes <=5)
+
+p <- plot_ly(closest.ap) %>%
+  add_markers(y= ~Price, x= ~WalkingMinutes, text= ~Apartment, color= ~ Gender, size= 1) %>%
+  layout(title="Get to Campus in 5 or Less Minutes Walking", xaxis=list(title="Distance from MC"), 
+         yaxis=list(title="Rent Price per Semester"))
+p
+```
+
+
+
+### Parking 
+
+Hover over the plot X:Price, Y:# Parking Spots, Z: Gender
+
+Nauvoo House and North Point have more than 300 parking stalls with a rent price of $1537 and 1279 respectively.
+
+
+```{r}
+
+
+parking <- plot_ly(Rent1) %>%
+  add_markers(y= ~ ParkingStalls, x= ~ Price,text= ~Apartment, ~Gender, colors = c("#3399FF", "#FF6666"), size= 1.2) %>%
+  layout(title="Paking Spots by Price", xaxis=list(title="Price"), 
+         yaxis=list(title="Parking Stalls"))
+parking
+```
+
+```{r}
+
+favstats(ParkingStalls ~ Gender, data= Rent1)[,-10] %>%
+pander(caption="Parking")
+
+```
+  
+  <br />
+  
+
+### Interpretation 
+
+Based on the above capacity, pricing, distance and parking evaluation, here are the apartments that would be the best options.
+The cheapest and closest to campus apartments are Birch plaza and Carriage House. If the student has a car and likes to live in a big apartment complex the best options are North Point and Nauvoo House. 
+
+
+
+<br />
+
+<br />
+ 
+[^1]: Source: https://rpubs.com/quincymccarney/852758
+
